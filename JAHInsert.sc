@@ -30,21 +30,24 @@ JAHInsert{
 			{\input}
 				{insertArray = JAHInsertDict.input.keys.asArray.flat;}
 			{\aux}
-				{insertArray = JAHInsertDict.aux.keys.asArray.flat;};
-				
-		listView = SCPopUpMenu(parentView,Rect(0,0,80,15))
+				{insertArray = JAHInsertDict.aux.keys.asArray.flat;}
+			{\master}
+				{insertArray = JAHInsertDict.master.keys.asArray.flat;};
+		listView = SCPopUpMenu(parentView,Rect(0,0,70,15))
 				.background_(Color.grey)
 				.canFocus_(false)
-				.items_(["NONE","-"]++insertArray)
+				.items_([\NONE,"-"]++insertArray)
 				.action_({|menu|
 					var val;
-					currentItem = menu.value;
-					if(menu.item != "NONE"){
+					currentItem = menu.item;
+					if(menu.item != \NONE){
 						try{
 							this.fx.remove();
 						};
-						val = listView.item++().asCompileString;
-						fx = val.interpret;
+/*						val = listView.item++().asCompileString;
+						fx = val.interpret;*/
+						val = listView.item;
+						fx = JAHFx.new(val);
 						fx.target_(insertGroup);
 						fx.parentInsert_(this);
 						switch(type)
@@ -53,10 +56,13 @@ JAHInsert{
 						{\input}
 							{fx.inbus_(track.inbus);}
 						{\aux}
-						{fx.inbus_(JAHDesk.auxBusDict.at(track.trackName.asSymbol));};
+							{fx.inbus_(JAHDesk.auxBusDict.at(track.trackName.asSymbol));}
+						{\master}
+							{fx.inbus_(track.desk.masterBus.at(\MainOut));};
 						fx.outbus_(track.internalBus);
-						fx.setSynthArgs;
+/*						fx.setSynthArgs;*/
 						fx.postln;
+						fx.setSynthArgs;
 					}{
 						this.removeFx();
 					};
@@ -125,6 +131,9 @@ JAHInsert{
 		powerButt.valueAction_(settingsDict.at(\insertSettings)[2]);
 	}
 	
+	setInsert{|argitem|
+		listView.valueAction_(listView.items.indexOf(argitem));
+	}
 	close{
 		"close".postln;
 			try{this.fx.hideGui;};

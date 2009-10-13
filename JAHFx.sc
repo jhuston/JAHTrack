@@ -5,15 +5,26 @@
 				\val:[1.0],
 				\guiType:[\knob],
 				\spec:[[0.0,2.0,\linear].asSpec],
-				\inbus:inbus,
+				\inbus:nil,
 				\outbus:outbus
 				);*/
+JAHAbstractFx{
+	classvar <>fxDictionary,<>s;
+	*initClass{
+		fxDictionary = ();
+		s = Server.default;
+		this.allSubclasses.do{|class|
+			fxDictionary.put(class.name,class);
+		};
+	}
+}
+
 JAHFx{
 	classvar <>allFX;
 	
-	var <>params;
-	var <>settings;
-	var <>settingsDict;
+	var <>effect;
+	var <>fxParams;
+	var <>defaults;
 	var <>target;
 	var <synth;
 	var <>isOn;
@@ -28,31 +39,52 @@ JAHFx{
 	*initClass{
 		allFX = List.new;
 	}
-	*new{|target,inbus,outbus|
-		^super.new.initJAHFx(target,inbus,outbus);
+	*new{|type,target,inbus,outbus|
+		^super.new.initJAHFx(type,target,inbus,outbus);
 	}
 	
-	initJAHFx{|argtarget,arginbus,argoutbus|
-		settingsDict =();
+	initJAHFx{|argtype,argtarget,arginbus,argoutbus|
+		effect = JAHAbstractFx.fxDictionary.at(argtype).new;
+		fxParams = ();
+		defaults = effect.settingsDict;
+		postf("JAHFX\n");
+		synthSelector = defaults.synthSelector;
 		s = Server.default;
 		target = argtarget ?? nil;
 		inbus = arginbus ?? 8;
 		outbus = argoutbus ?? 0;
 		isOn = false;
 		currentPreset = nil;
+		defaults.params.do{|param,i|
+			fxParams.put(param,JAHfxParams()
+				.name_(defaults.synthSelector)
+				.param_(param)
+				.label_(defaults.label[i])
+				.val_(defaults.val[i])
+				.spec_(defaults.spec[i])
+				);
+			};
 		allFX.add(this);
 	}
 	
+	//TODO working on fxParams Logic...
 	setSynthArgs{
-		settingsDict.inbus = inbus;
-		settingsDict.outbus = outbus;
-		synthArgs = [settingsDict.at(\params),settingsDict.at(\val)].flop.flat++[\inbus,inbus,\outbus,outbus];
+		synthArgs = [];
+		fxParams.collect({|item|
+		synthArgs = synthArgs.add([item.param,item.val]);});
+		synthArgs = synthArgs.flat;
+		^synthArgs;
+	}
+	
+	synthValues{
+		
+		
 	}
 	on{
 		"on.\n".postln;
 		if(isOn == false){
 			isOn = true;
-			synth = Synth(synthSelector,synthArgs,target,\addToHead);
+			synth = Synth(synthSelector,this.setSynthArgs++[\inbus,inbus,\outbus,outbus],target,\addToHead);
 		}
 	}
 	
@@ -75,12 +107,14 @@ JAHFx{
 	}
 	gui{
 			if(jahGui.isNil){
-				^jahGui = JAHfxGui.new(settingsDict).fx_(this);
+				jahGui = JAHfxGui.new(defaults).fx_(this);
+				jahGui.initGUI();
 		}{^jahGui.win.front;}
 	}
 	saveSettings{
+		this.setSynthArgs;
 		Dialog.savePanel({|path|
-			settingsDict.writeArchive(path);
+			synthArgs.writeArchive(path);
 		});
 	}
 	getSettings{|path|
@@ -93,24 +127,34 @@ JAHFx{
 				this.applySettings();
 			},{"canceled".postln});
 		}{
-		settingsDict = Object.readArchive(path);
+		synthArgs = Object.readArchive(path);
 		this.applySettings();
 		};
 		
 	}
 	
-	applySettings{
-		settingsDict = Object.readArchive(currentPreset);
-		settingsDict.params.do{|param,i|
-			jahGui.paramDict.at(param).guiControl.valueAction_(settingsDict.val[i]);
+	applySettings{|argSynthArgs|
+		if(argSynthArgs.isNil){
+			synthArgs = Object.readArchive(currentPreset);
+		}{
+			synthArgs = argSynthArgs;
+		};
+			if(isOn == true){
+				synth = Synth.replace(synth.nodeID,synthSelector,synthArgs++[\inbus,inbus,\outbus,outbus]);
 			};
+			if(jahGui.notNil){
+				synthArgs.pairsDo{|a,b| this.fxParams.at(a).control.valueAction_(b);}
+			}
 	}
 	
 }
 
 
 //Envelope Filter
-JAHEnvFilter : JAHFx{
+JAHEnvFilter : JAHAbstractFx{
+	var <>settingsDict;
+
+	
 	*new{
 		^super.new.initJAHEnvFilter();
 	}
@@ -120,11 +164,10 @@ JAHEnvFilter : JAHFx{
 	SynthDef(\jahEnvFilter,{|inbus=8,outbus=0,attack = 0.1, release =1.0, res = 0.5,mul = 2000,add = 100,direct=0.0|
 		var source,in;
 		in = In.ar(inbus,1);
-		source = MoogVCF.ar(in,Lag.kr(AmplitudeMod.kr(in,attack,release,mul,add),0.2),res);
+		source = MoogVCF.ar(in,Lag.kr(AmplitudeMod.kr(in,attack,release,mul,add),0.02),res);
 		ReplaceOut.ar(outbus,source+Out.ar(outbus,in*direct));
-	}).load(s);		
+	}).load(s);
 
-		synthSelector = \jahEnvFilter;
 		settingsDict = (
 			\synthSelector:\jahEnvFilter,
 			\params:[\attack,\release,\res,\mul,\add,\direct],
@@ -135,25 +178,26 @@ JAHEnvFilter : JAHFx{
 				[0.01,2.0,\lin].asSpec,
 				[0.01,2.0,\lin].asSpec,
 				[0.1,1.0,\lin].asSpec,
-				[100.0,2000.0,\exponential].asSpec,
+				[100.0,5000.0,\exponential].asSpec,
 				[10.0,3000.0,\exponential].asSpec,
 				\amp.asSpec
 				],
-			\inbus:inbus,
-			\outbus:outbus
+			\inbus:nil,
+			\outbus:nil
 		);
 	}
 }
 
 //Tremolo
 
-JAHTremolo : JAHFx{
-
+JAHTremolo : JAHAbstractFx{
+	var <>settingsDict;	
 	*new{
 		^super.new.initJAHTremolo();
 	}
 	
 	initJAHTremolo{
+		postf("JAHTremolo\n");
 		//synthdef
 		SynthDef(\jahTremolo,{|inbus=8,outbus=0,rate=10.0,depth=1.0|
 			var input,mod,offset;
@@ -164,7 +208,6 @@ JAHTremolo : JAHFx{
 			ReplaceOut.ar(outbus,input*mod);
 		}).load(s);
 		
-		synthSelector = \jahTremolo;
 		//params
 		settingsDict = (\synthSelector:\jahTremolo,
 				\params:[\rate,\depth],
@@ -172,15 +215,15 @@ JAHTremolo : JAHFx{
 				\val:[5.0,1.0],
 				\guiType:[\knob,\knob],
 				\spec:[[0,20,\linear].asSpec,[0,1].asSpec],
-				\inubs: inbus,
-				\outbus:outbus
+				\inbus: nil,
+				\outbus:nil
 				);
 
 	}
 }
 
-JAHInput : JAHFx{
-	
+JAHInput : JAHAbstractFx{
+	var <>settingsDict;	
 	*new{
 		^super.new.initJAHInput();
 	}
@@ -193,21 +236,20 @@ JAHInput : JAHFx{
 			Out.ar(outbus,input*vol);
 			}).load(s);
 
-		synthSelector = \jahInput;
 		settingsDict = (\synthSelector:\jahInput,
 						\params:[\vol],
 						\label:["gain"],
 						\val:[1.0],
 						\guiType:[\knob],
 						\spec:[[0.0,2.0,\linear].asSpec],
-						\inbus:inbus,
-						\outbus:outbus
+						\inbus:nil,
+						\outbus:nil
 						);
 	}
 }
 
-JAHFreeVerb : JAHFx{
-	
+JAHFreeVerb : JAHAbstractFx{
+	var <>settingsDict;	
 	*new{
 		^super.new.initJAHFreeVerb();
 	}
@@ -220,21 +262,20 @@ JAHFreeVerb : JAHFx{
 				ReplaceOut.ar(outbus, (fx*fxlevel) + (sig * level)) // level 
 				}).load(s);
 	
-	synthSelector = \JAHFreeVerb;
 	settingsDict = (\synthSelector: \JAHFreeVerb,
 					\params:[\mix,\room,\damp,\fxlevel,\level],
 					\label:["mix","room","damp","fxLevel","dryLevel"],
 					\val:[0.25,0.15,0.5,0.75,0.0],
 					\guiType:[\knob,\knob,\knob,\knob,\knob],
 					\spec:[\amp.asSpec,nil,nil,nil,nil],
-					\inbus:inbus,
-					\outbus:outbus
+					\inbus:nil,
+					\outbus:nil
 					);
 	}
 }
 
-JAHAuxInput : JAHFx{
-	
+JAHAuxInput : JAHAbstractFx{
+	var <>settingsDict;
 	*new{
 		^super.new.initJAHAuxInput();
 	}
@@ -243,22 +284,75 @@ JAHAuxInput : JAHFx{
 
 		SynthDef(\JAHAuxInput,{|inbus,outbus,vol=1.0|
 			var input;
-			input = InFeedback.ar(inbus,1);
+			input = In.ar(inbus,1);
 			Out.ar(outbus,input*vol);
 			}).load(s);
 
-	synthSelector = \JAHAuxInput;
 	settingsDict = (\synthSelector: \JAHAuxInput,
 					\params:[\vol],
-					\labels:["volume"],
-					\val:[1.0],
-					\guiType:[\knob],
+					\label:["volume"],
+					\val:[1.0,2.0],
+					\guiType:[\knob,\knob],
 					\spec:[[0.0,2.0,\linear].asSpec],
-					\inbus:inbus,
-					\outbus:outbus
+					\inbus:nil,
+					\outbus:nil
 					);
 	}
 	
 	
 	
+}
+
+JAHComp : JAHAbstractFx{
+	
+	var <>settingsDict;
+	*new{
+		^super.new.initJAHComp();
+	}
+	
+	initJAHComp{
+	SynthDef(\JAHComp,{|inbus = 8, outbus = 20, vol = 1.0,thresh = 0.01,sens = 10,ratio = 1|
+		var input;
+		input = In.ar(inbus,1);
+		input = Compander.ar(input,input,thresh,sens,ratio,0.01,0.01);
+		Out.ar(outbus,input*vol);
+	}).load(s);
+	
+	settingsDict = (\synthSelector:\JAHComp,
+					\params:[\vol,\thresh,\sens,\ratio],
+					\label:["volume","threshhold","sensitivity","ratio"],
+					\val:[1.0,0.05,0.5,0.5],
+					\guiType:[\knob,\knob,\knob,\knob],
+					\spec:[\amp.asSpec,[0.01,5,\linear].asSpec,[0.1,2.0,\linear].asSpec,[0.1,2,\linear].asSpec],
+					\inbus:nil,
+					\outbus:nil);
+	}
+}
+
+JAHOctave : JAHAbstractFx{
+	var <>settingsDict;
+	
+	*new{
+		^super.new.initJAHOctave();
+	}
+	
+	initJAHOctave{
+		SynthDef(\JAHOctave, {| inbus=8, outbus=0, pitch1=1, pitch2=1, vol1=0.25, vol2=0.25, dispersion=0, fxlevel=0.5, level=0 | 
+				   var fx1, fx2, sig; 
+				   sig = In.ar(inbus, 1); 
+				   fx1 = PitchShift.ar(sig, 0.2, pitch1, dispersion, 0.0001);
+				   fx2 = PitchShift.ar(sig, 0.2, pitch2, dispersion, 0.0001);
+				   ReplaceOut.ar(outbus,  ( ((fx1 * vol1) + (fx2 * vol2)) * fxlevel) + (sig * level) ); 
+				}).load(Server.default); 
+		
+		settingsDict = (\synthSelector:\JAHOctave,
+					\params:[\pitch1,\vol1,\pitch2,\vol2,\dispersion,\fxLevel,\level],
+					\label:["pitch 1","vol 1","pitch 2","vol 2","dispersion","fx level","level"],
+					\val:[1,0.25,1,0.25,0,0.5,0],
+					\guiType:[\knob,\knob,\knob,\knob,\knob,\knob,\knob],
+					\spec:[[0.0,2.0,\linear,0.01,1].asSpec,\amp.asSpec,[0.0,2.0,\linear,0.01,1].asSpec,\amp.asSpec,\amp.asSpec,\amp.asSpec,\amp.asSpec],
+					\inbus:nil,
+					\outbus:nil
+					)
+	}
 }

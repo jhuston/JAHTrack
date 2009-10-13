@@ -1,27 +1,9 @@
-//JAHfxParams: container class to hold parameters for fx gui and midi control.
-JAHfxParams{
-	var <>param,<>val,<>label,<>spec,<>midiCntrl,<>valAction,<>midiType,<>guiControl;
-	
-	*new{
-		^super.new.initJAHfxParams();
-	}
-	
-	initJAHfxParams{
-
-		}
-	
-	relateControl_{|argGuiControl|
-		guiControl = argGuiControl;
-		}
-}
-
-
 JAHfxGui{
 	var name, params,settings;
 	var paramKeys;
 	var <paramList,<>paramDict,<>settingsDict;
 	var <>win,knobSheet;
-	var knobList;
+	var <>knobList;
 	var bounds;
 	var width,height;
 	var <>outbus,<>inbus;
@@ -42,7 +24,7 @@ JAHfxGui{
 		paramDict = ();
 		paramKeys = settingsDict.at(\params);
 		name = settingsDict.at(\synthSelector).asString ? "Generic JAH GUI";
-		this.initGUI();
+/*		this.initGUI();*/
 		"init Method JAHfxGui".postln;
 /*		this.initMIDI();*/
 	}
@@ -56,12 +38,13 @@ JAHfxGui{
 		knobSheet = FlowView(win);
 		paramKeys.do{|param,i|
 			var rowCount = i%3;
-			paramDict.put(param,JAHfxParams.new);
+			paramDict.put(param,settingsDict.val[i]);
 			if(rowCount>=3){knobSheet.startRow;};
-			paramDict.at(param).relateControl_(
-				EZKnob(knobSheet,90@40,label:settingsDict.label[i],initVal:settingsDict.val[i],controlSpec:settingsDict.spec[i],unitWidth:0,layout:\line2,margin:2@2)
+			fx.fxParams.at(param).control_(
+	EZKnob(knobSheet,90@40,label:settingsDict.label[i],initVal:settingsDict.val[i],controlSpec:settingsDict.spec[i],unitWidth:0,layout:\line2,margin:2@2)
 					.font_(Font("Helvetica",10))
 					.action_({|knob| knob.value.postln;
+						fx.fxParams.at(param).val_(knob.value);
 						try{fx.synth.set(param,knob.value)};
 						});
 				);
@@ -98,7 +81,7 @@ JAHfxGui{
 	}
 	
 	setParam{|param,val|
-		{paramDict.at(param).guiControl.valueAction_(val)}.defer(0.001);
+		{paramDict.at(param).control.valueAction_(val)}.defer(0.001);
 		}
 	
 	initMIDI{
