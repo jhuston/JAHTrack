@@ -7,13 +7,7 @@ JAHfxParams{
 	}
 	
 	initJAHfxParams{|argparams|
-/*		if(argparams.notEmpty){
-			name = argparams[0];
-			param = argparams[1];
-			label = argparams[2];
-			val = argparams[3];
-			spec = argparams[4];
-		};*/
+
 	}
 	
 	relateControl_{|argcontrol|

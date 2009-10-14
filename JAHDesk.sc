@@ -10,7 +10,7 @@ JAHDesk{
 	var <>currentPreset;
 	var <>selectedTrack;
 	var <>addTrackButt,<>loadDeskButt;
-	var <>masterBus,<>masterGroup,<>tracksGroup,<>auxGroup;
+	var <>masterBus,<>masterGroup,<>tracksGroup,<>auxGroup,<>loopGroup;
 	var s;
 	var <>presets;
 
@@ -80,6 +80,7 @@ JAHDesk{
 	buildGroup{
 		masterBus = (\MainOut:Bus.audio(s,2));
 		masterGroup = Group(s,\addToTail);
+		loopGroup = Group(masterGroup,\addBefore);
 		tracksGroup = Group(s,\addToHead);
 		auxGroup = Group(tracksGroup,\addAfter);
 	}
@@ -251,6 +252,7 @@ JAHDesk{
 		tracksGroup.free;
 		masterGroup.free;
 		auxGroup.free;
+		loopGroup.free;
 	}
 
 }
