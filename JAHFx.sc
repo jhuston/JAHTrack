@@ -35,6 +35,9 @@ JAHFx{
 	var <>parentInsert;
 	var <>outbus,<>inbus;
 	var <>currentPreset;
+	var <>currentValues;
+	var <>paramNames;
+	var <>presetsDict;
 	
 	*initClass{
 		allFX = List.new;
@@ -47,14 +50,21 @@ JAHFx{
 		effect = JAHAbstractFx.fxDictionary.at(argtype).new;
 		fxParams = ();
 		defaults = effect.settingsDict;
+		paramNames = effect.settingsDict.at(\params);
+		currentValues = effect.settingsDict.at(\val);
 		postf("JAHFX\n");
 		synthSelector = defaults.synthSelector;
+
+		if(File.exists("JAH/fxPresets/"++synthSelector.asString)){
+			presetsDict = Object.readArchive("JAH/fxPresets/"++synthSelector.asString);
+		}{presetsDict = ();};
+
 		s = Server.default;
 		target = argtarget ?? nil;
 		inbus = arginbus ?? 8;
 		outbus = argoutbus ?? 0;
 		isOn = false;
-		currentPreset = nil;
+		currentPreset = \NONE;
 		defaults.params.do{|param,i|
 			fxParams.put(param,JAHfxParams()
 				.name_(defaults.synthSelector)
@@ -111,28 +121,37 @@ JAHFx{
 				jahGui.initGUI();
 		}{^jahGui.win.front;}
 	}
-	saveSettings{
-		this.setSynthArgs;
-		Dialog.savePanel({|path|
-			synthArgs.writeArchive(path);
-		});
-	}
-	getSettings{|path|
-		"load settings".postln;
-		if(path.isNil){
-			Dialog.getPaths({|paths|
-				paths.do{|path|
-					currentPreset = PathName.new(path).fullPath;
-				};
-				this.applySettings();
-			},{"canceled".postln});
-		}{
-		synthArgs = Object.readArchive(path);
-		this.applySettings();
-		};
-		
-	}
 	
+	savePreset{|name|
+		name = name.asSymbol;
+		currentValues = nil;
+		currentPreset = name;
+		paramNames.do{|param,i| currentValues = currentValues.add(fxParams.at(param).val)};
+		presetsDict.put(name,currentValues);
+		presetsDict.writeArchive("JAH/fxPresets/"++synthSelector.asString);
+		jahGui.presetList.items_(jahGui.itemBase++presetsDict.keys.asArray.flat.sort);
+		jahGui.presetList.value_(jahGui.presetList.items.indexOf(currentPreset));
+	}
+	loadPreset{|name|
+		name = name.asSymbol;
+		if(presetsDict.includesKey(name)){
+			currentValues = presetsDict.at(name);
+			currentPreset = name.asSymbol;
+		paramNames.do{|param,i| fxParams.at(param).val_(currentValues[i]);
+			if(jahGui.notNil){
+				fxParams.at(param).control.valueAction_(currentValues[i]);
+				jahGui.presetList.value_(jahGui.presetList.items.indexOf(currentPreset));
+			}{this.setSynthArgs;};
+			};
+		};
+	}
+	removePreset{|name|
+		name = name.asSymbol;
+		presetsDict.removeAt(name);
+		presetsDict.writeArchive("JAH/fxPresets/"++synthSelector.asString);
+		jahGui.presetList.items_(jahGui.itemBase++presetsDict.keys.asArray.flat.sort);
+		}
+	//TODO change this for new preset system
 	applySettings{|argSynthArgs|
 		if(argSynthArgs.isNil){
 			synthArgs = Object.readArchive(currentPreset);

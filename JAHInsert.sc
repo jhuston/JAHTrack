@@ -1,7 +1,7 @@
 JAHInsert{
 	
 	var parent;
-	var settingsDict;
+	var <>settingsDict;
 	var parentView;
 	var <>listView,<>enableButt,<>powerButt;
 	var <>insertArray;

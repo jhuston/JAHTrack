@@ -11,6 +11,8 @@ JAHfxGui{
 	var outputs,inputs;
 	var midiBtn;
 	var <>fx;
+	var <itemBase;
+	var <>presetList,<>presetText,<>savePresetButt,<>removePresetButt;
 	
 	*new{|name, params|
 		^super.new.initJAHfxGui(name,params);
@@ -19,6 +21,7 @@ JAHfxGui{
 /*settingsDict = key:[label,initial value,gui control type (\knob,\slider etc...),spec]	*/
 //	
 	initJAHfxGui{|argParams|
+		itemBase = [\NONE,"-"];
 		settingsDict = argParams ?? ();
 		knobList = List.new;
 		paramDict = ();
@@ -36,12 +39,42 @@ JAHfxGui{
 		win.userCanClose_(false);
 		bounds = Rect(10,10,width,height);
 		knobSheet = FlowView(win);
+		presetList = PopUpMenu(knobSheet,Rect(0,0,80,15))
+				.font_(Font("Helvetica",9))
+				.items_(itemBase++fx.presetsDict.keys.asArray.flat.sort)
+				.action_({|menu|
+						if(menu.item != \NONE){
+							fx.loadPreset(menu.item);
+						}
+					});
+		presetList.value_(presetList.items.indexOf(fx.currentPreset));
+		presetText = TextField(knobSheet,Rect(0,0,60,15))
+				.font_(Font("Helvetica",9));
+		savePresetButt = RoundButton(knobSheet,Rect(0,0,40,15))
+				.font_(Font("Helvetica",9))
+				.states_([["save",Color.black,Color.white]])
+				.border_(1)
+				.canFocus_(false)
+				.extrude_(false)
+				.action_({|butt|
+					fx.savePreset(presetText.string);
+					});
+		removePresetButt = RoundButton(knobSheet,Rect(0,0,40,15))
+				.font_(Font("Helvetica",9))
+				.states_([["delete",Color.black,Color.white]])
+				.border_(1)
+				.canFocus_(false)
+				.extrude_(false)
+				.action_({|butt|
+					fx.removePreset(presetList.item);
+					});
+		knobSheet.startRow;
 		paramKeys.do{|param,i|
 			var rowCount = i%3;
-			paramDict.put(param,settingsDict.val[i]);
+			paramDict.put(param,fx.fxParams.at(param).val);
 			if(rowCount>=3){knobSheet.startRow;};
 			fx.fxParams.at(param).control_(
-	EZKnob(knobSheet,90@40,label:settingsDict.label[i],initVal:settingsDict.val[i],controlSpec:settingsDict.spec[i],unitWidth:0,layout:\line2,margin:2@2)
+	EZKnob(knobSheet,90@40,label:fx.fxParams.at(param).label,initVal:fx.fxParams.at(param).val,controlSpec:fx.fxParams.at(param).spec,unitWidth:0,layout:\line2,margin:2@2)
 					.font_(Font("Helvetica",10))
 					.action_({|knob| knob.value.postln;
 						fx.fxParams.at(param).val_(knob.value);

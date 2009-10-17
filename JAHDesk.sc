@@ -9,10 +9,11 @@ JAHDesk{
 	var <>settingsDict;
 	var <>currentPreset;
 	var <>selectedTrack;
-	var <>addTrackButt,<>loadDeskButt;
+	var <>addTrackButt,<>loadDeskButt,<>saveDeskButt;
 	var <>masterBus,<>masterGroup,<>tracksGroup,<>auxGroup,<>loopGroup;
 	var s;
 	var <>presets;
+	var <>dirty;
 
 	*new{|name|
 		^super.new.initJAHDesk(name);
@@ -20,6 +21,7 @@ JAHDesk{
 	
 	initJAHDesk{|argname|
 		var width,height;
+		dirty = false;
 		s = Server.default;
 		settingsDict = ();
 		auxBusDict = ();
@@ -61,6 +63,15 @@ JAHDesk{
 				.states_([["Load Desk",Color.black,Color.white]])
 				.mouseDownAction_({|butt|
 					this.getSettings();
+				});
+		saveDeskButt = RoundButton(dashboardView,Rect(0,0,80,20))
+				.font_(Font("Helvetica",10))
+				.extrude_(false)
+				.border_(1)
+				.canFocus_(false)
+				.states_([["Save Desk",Color.black,Color.white]])
+				.mouseDownAction_({|butt|
+					this.saveSettings();
 				});
 		tracksMenu = SCPopUpMenu(dashboardView,Rect(0,0,150,15))
 				.font_(Font("Helvetica",9))
@@ -206,11 +217,14 @@ JAHDesk{
 		if(JAHDesk.auxBusDict.keys.notEmpty){
 			this.updateAuxArray();
 		};
+		dirty = true;
 	}
 	
 	saveSettings{
 		var trackOrder =[];
-		tracks.do{|item| trackOrder = trackOrder.add(item[0]);};
+		var insertSettings = [];
+		tracks.do{|item| trackOrder = trackOrder.add(item[0]);
+			};
 		settingsDict = (\deskName:name,
 			\trackOrder:trackOrder,
 			\tracks:trackSettings
@@ -241,6 +255,7 @@ JAHDesk{
 			postf("params:%\n key:%",params,track);
 			this.addNewTrack(params[0],params[1],params[2]);
 		};
+		dirty = false;
 	}
 	updateAuxArray{
 		this.tracks.do{|track|
