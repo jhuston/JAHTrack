@@ -106,7 +106,7 @@ JAHTrack{
 			input = JAHTrackInput(this,inbus,internalBus,inputGroup);
 		}
 		{\gen}{
-			input = JAHInsert(this,type).id_(type++1).insertGroup_(Group(inputGroup,\addToTail));
+			input = JAHInstrument(this,internalBus,inputGroup);
 		}
 		{\aux}{
 			input = JAHInsert(this,type).id_(type++1).insertGroup_(Group(inputGroup,\addToTail));
