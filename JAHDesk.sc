@@ -38,7 +38,7 @@ JAHDesk{
 		dashboardView = FlowView(win,Rect(10,10,200,height)).background_(Color.red);
 		tracksView = FlowView(win,Rect(210,10,500,height)).background_(Color.grey(0.9));
 		tracksView.decorator.gap_(20@20);
-		auxTracksView = FlowView(win,Rect(510,10,width-575,height)).background_(Color.grey(0.8));
+		auxTracksView = FlowView(win,Rect(710,10,width-375,height)).background_(Color.grey(0.8));
 		tracksView.decorator.gap_(20@20);
 		masterTrackView = FlowView(win,Rect(width-135,10,125,height)).background_(Color.grey(0.7));
 		tracksView.decorator.gap_(20@20);

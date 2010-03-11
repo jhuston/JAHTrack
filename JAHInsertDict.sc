@@ -8,10 +8,10 @@ JAHInsertDict{
 	*initClass{
 		
 		fx = (\JAHComp:"Compressor",\JAHTremolo:"Tremolo",\JAHEnvFilter:"Envelope Filter",\JAHFreeVerb:"FreeVerb",\JAHOctave:"Octave");
-		gen = (\JahTabletTgrain:"TGrains",\JahTabletSlice:"Tablet Slice");
+		gen = (\JahTabletTgrain:"TGrains",\JahTabletSlice:"Tablet Slice",\JAHAudience:"audience");
 		aux = (\JAHAuxInput:"Aux Input");
 		input = (\JAHInput:"input");
-		master = (\JAHAuxInput:"Master Bus");
+		master = (\JAHAuxInputStereo:"Master Bus");
 	}
 	
 	

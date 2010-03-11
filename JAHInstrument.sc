@@ -23,7 +23,6 @@ JAHInstrument{
 	}
 	
 	initJAHInstrument{|argparent,argoutbus,argGroup|
-
 		track = argparent;
 		parentView = track.trackView;
 		outbus = argoutbus;
@@ -39,7 +38,11 @@ JAHInstrument{
 						var val;
 						if(menu.item != \NONE){
 							val = listView.item;
+							if(inbus.notNil){
+								instrument = JAHAbstractInstrument.instrumentDictionary.at(val).new(inputGroup,outbus,inbus);
+							}{
 							instrument = JAHAbstractInstrument.instrumentDictionary.at(val).new(inputGroup,outbus);
+							};
 							if(instrument.class.findMethod('gui')!= nil){
 								instrument.gui;
 							}

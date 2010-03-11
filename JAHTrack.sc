@@ -84,7 +84,7 @@ JAHTrack{
 		label = SCStaticText(trackView,Rect(0,0,90,20))
 				.font_(Font("Helvetica",12))
 				.stringColor_(trackColor)
-				.string_(trackName);
+				.string_(trackName++" : "++internalBus.index);
 		muteButt = RoundButton(trackView,Rect(0,0,20,20))
 				.canFocus_(false)
 				.extrude_(false)
@@ -106,7 +106,7 @@ JAHTrack{
 			input = JAHTrackInput(this,inbus,internalBus,inputGroup);
 		}
 		{\gen}{
-			input = JAHInstrument(this,internalBus,inputGroup);
+			input = JAHInstrument(this,internalBus,inputGroup,inbus);
 		}
 		{\aux}{
 			input = JAHInsert(this,type).id_(type++1).insertGroup_(Group(inputGroup,\addToTail));

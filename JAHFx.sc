@@ -267,6 +267,32 @@ JAHInput : JAHAbstractFx{
 	}
 }
 
+JAHAuxInputStereo : JAHAbstractFx{
+	var <>settingsDict;	
+	*new{
+		^super.new.initJAHAuxInputStereo();
+	}
+	
+	initJAHAuxInputStereo{
+
+		SynthDef(\jahAuxInputStereo,{|inbus=8,outbus,vol|
+			var input;
+			input = In.ar(inbus,2);
+			Out.ar([outbus,outbus+1],input*vol);
+			}).load(s);
+
+		settingsDict = (\synthSelector:\jahAuxInputStereo,
+						\params:[\vol],
+						\label:["gain"],
+						\val:[1.0],
+						\guiType:[\knob],
+						\spec:[[0.0,2.0,\linear].asSpec],
+						\inbus:nil,
+						\outbus:nil
+						);
+	}
+}
+
 JAHFreeVerb : JAHAbstractFx{
 	var <>settingsDict;	
 	*new{
