@@ -1,5 +1,5 @@
 #JAHTrack
-=========
+---------
 
 This is a collection of classes and code that was written for the [Degenerate Art Ensemble](http://www.degenerateartensemble.com) show "Sonic Tales"
 
